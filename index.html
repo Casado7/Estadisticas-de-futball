@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <script src="https://d3js.org/d3.v7.js"></script>
+</head>
+
+<body>
+  <div id="chart"></div>
+
+  <script>
+    // set up
+
+    const margin = { top: 10, right: 10, bottom: 20, left: 10 };
+
+    const width = 800 - margin.left - margin.right;
+    const height = 600 - margin.top - margin.bottom;
+
+    const svg = d3.select('#chart')
+      .append('svg')
+        .attr('width', width + margin.left + margin.right)
+        .attr('height', height + margin.top + margin.bottom)
+      .append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    // data
+
+    const data = [
+      {month: "Remates", apples: 14*100/29, bananas: 15*100/29},
+      {month: "Remastes al arco", apples: 5*100/15, bananas: 10*100/15},
+      {month: "Posesión", apples:  44, bananas: 56},
+      {month: "Pases", apples:  532*100/1191, bananas:  659*100/1191},
+      {month: "Precisión de los pases", apples:  80*100/163, bananas:  83*100/163},
+      {month: "Faltas", apples:  14*100/32, bananas:  18*100/32},
+      {month: "Tarjetas amarillas", apples:  4*100/7, bananas:  3*100/7},
+      {month: "Tarjetas rojas", apples:  50, bananas:  50},
+      {month: "Posición adelantada", apples:  3*100/6, bananas:  3*100/6},
+      {month: "Tiros de esquina", apples:  3*100/12, bananas:  9*100/12},
+    ];  
+
+    const fruit = Object.keys(data[0]).filter(d => d != "month");
+    const months = data.map(d => d.month);
+
+    const stackedData = d3.stack()
+        .keys(fruit)(data);
+
+    const xMax = d3.max(stackedData[stackedData.length - 1], d => d[1]);
+
+    // scales
+
+
+    const x = d3.scaleLinear()
+        .domain([0, 100]).nice()
+        .range([0, width])
+    ;
+
+    const y = d3.scaleBand()
+        .domain(months)
+        .range([0, height])
+        .padding(0.50);
+
+    const color = d3.scaleOrdinal()
+        .domain(fruit)
+        .range(d3.schemeTableau10);
+
+    // axes
+
+    const xAxis = d3.axisBottom(x).ticks(8)
+  .tickFormat(function(d) {
+    return d + "%";
+  });
+    const yAxis = d3.axisLeft(y);
+
+    svg.append('g')
+        .attr('transform', `translate(0,${height})`)
+        .call(xAxis)
+        .call(g => g.select('.domain').remove());
+
+//    svg.append("g")
+//        .call(yAxis)
+//        .call(g => g.select('.domain').remove());
+
+
+
+// Add Y axis label:
+html = "";
+var cun = 0;
+  for (var i of months) {
+    html += svg.append("text")
+        .attr("text-anchor", "middle")
+        .attr("x", width/2)
+        .attr("y", 20 + 54*cun)
+        .text(i);
+    cun += 1;
+}
+
+
+    // draw bars
+
+    // create one group for each fruit
+    const layers = svg.append('g')
+      .selectAll('g')
+      .data(stackedData)
+      .join('g')
+        .attr('fill', d => color(d.key));
+
+    // transition for bars
+    const duration = 1000;
+    const t = d3.transition()
+        .duration(duration)
+        .ease(d3.easeLinear);
+
+    layers.each(function(_, i) {
+      // this refers to the group for a given fruit
+      d3.select(this)
+        .selectAll('rect')
+        .data(d => d)
+        .join('rect')
+          .attr('x', d => x(d[0]))
+          .attr('y', d => y(d.data.month))
+          .attr('height', y.bandwidth())
+        .transition(t)
+          // i is the index of this fruit.
+          // this will give the bars for each fruit a different delay
+          // so that the fruits will be revealed one at a time.
+          // using .each() instead of a normal data join is needed
+          // so that we have access to what fruit each bar belongs to.
+          .delay(i * duration)
+          .attr('width', d => x(d[1]) - x(d[0]));
+    });
+
+
+  </script>
+</body>
+
+</ht
